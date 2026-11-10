@@ -16,7 +16,8 @@ export const TIMESTAMP_HEADER = "x-timestamp";
 export const IDEMPOTENCY_KEY_HEADER = "idempotency-key";
 
 /**
- * Signature of the request signing string (client → relay) or of `api_key.body` (relay → webhook).
+ * Signature of the request signing string (client → relay) or of
+ * `api_key.timestamp.body` (relay → webhook).
  * Prefix selects the algorithm: `sha256=<hex>` or `ed25519=<base64>`.
  */
 export const PAYLOAD_SIGNATURE_HEADER = "x-payload-signature";
@@ -56,9 +57,9 @@ export const REQUEST_SIGNING_STRING =
 
 /**
  * Relay → webhook HMAC input:
- * `api_key + "." + raw_body` (no timestamp / method / path).
+ * `api_key + "." + timestamp + "." + raw_body` (no method / path).
  */
-export const WEBHOOK_HMAC_SIGNING_STRING = "api_key.raw_body" as const;
+export const WEBHOOK_HMAC_SIGNING_STRING = "api_key.timestamp.raw_body" as const;
 
 /** Tenant API key for `X-API-Key`. */
 export type ApiKey = `ak_live_${string}`;
@@ -81,7 +82,7 @@ export type Ed25519PayloadSignature = `ed25519=${string}`;
 /**
  * HMAC-SHA256, hex-encoded.
  * Client → relay: `HMAC(cs_live_, api_key.timestamp.METHOD.path.body)`.
- * Relay → webhook: `HMAC(cs_live_, api_key.body)`.
+ * Relay → webhook: `HMAC(cs_live_, api_key.timestamp.body)`.
  */
 export type HmacPayloadSignature = `sha256=${string}`;
 
@@ -131,6 +132,7 @@ export interface RelayResponseHeaders {
 /** Always present on relay → webhook deliveries. */
 export interface WebhookDeliveryHeaders extends JsonContentTypeHeader {
   "x-api-key": ApiKey;
+  "x-timestamp": TimestampSeconds;
   "x-payload-signature": HmacPayloadSignature;
   "idempotency-key": string;
   "x-event-id": string;

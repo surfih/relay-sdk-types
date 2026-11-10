@@ -1,4 +1,9 @@
-import type { CreateQueueHeaders, SignedBodyHeaders, SignedIdempotentHeaders } from "./headers.js";
+import type {
+  CreateQueueHeaders,
+  SignedBodyHeaders,
+  SignedIdempotentHeaders,
+  WebhookDeliveryHeaders,
+} from "./headers.js";
 import type { CreateQueueRequest } from "./queues.js";
 import type {
   PostCheckpointsRequest,
@@ -30,6 +35,27 @@ const queueHeaders = {
 const immediate = {
   event_type: "order.created",
   event: { id: "ord_1" },
+} satisfies SubmitEventRequest;
+
+const throttled = {
+  event_type: "notify.user",
+  event: { user_id: "42" },
+  delay_seconds: 60,
+  key_mode: "throttle",
+} satisfies SubmitEventRequest;
+
+const debounced = {
+  event_type: "search.index",
+  event: { doc_id: "d1", rev: 2 },
+  delay_seconds: 5,
+  key_mode: "debounce",
+} satisfies SubmitEventRequest;
+
+const batched = {
+  event_type: "search.index",
+  event: { doc_id: "d1", rev: 3 },
+  delay_seconds: 5,
+  key_mode: "batch",
 } satisfies SubmitEventRequest;
 
 const delayed = {
@@ -86,6 +112,17 @@ const checkpointHeaders = {
   "x-payload-signature": "sha256=abcd",
 } satisfies SignedBodyHeaders;
 
+const webhookHeaders = {
+  "content-type": "application/json",
+  "x-api-key": "ak_live_example",
+  "x-timestamp": "1730112000",
+  "x-payload-signature": "sha256=abcd",
+  "idempotency-key": "evt_1:1",
+  "x-event-id": "evt_1",
+  "x-event-attempt": "1",
+  "x-queue-id": "que_1",
+} satisfies WebhookDeliveryHeaders;
+
 type _Submit = RelayApi["submitEvent"];
 type _SubmitStatus = _Submit["successStatus"];
 const _status: _SubmitStatus = 202;
@@ -98,6 +135,9 @@ void queueBody;
 void queueBodyWithoutKey;
 void queueHeaders;
 void immediate;
+void throttled;
+void debounced;
+void batched;
 void delayed;
 void atTime;
 void both;
@@ -107,5 +147,6 @@ void missingError;
 void eventHeaders;
 void checkpointBody;
 void checkpointHeaders;
+void webhookHeaders;
 void _status;
 void _checkpointsStatus;

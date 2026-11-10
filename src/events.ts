@@ -31,6 +31,20 @@ export const MAX_DELIVERY_DELAY_DAYS = 90;
 /** `90 * 24 * 60 * 60`. Inclusive upper bound for `delay_seconds`. */
 export const MAX_DELAY_SECONDS = 7_776_000;
 
+/**
+ * How `Idempotency-Key` is reused on `POST …/events`.
+ * - `once` (default): forever unique; same body replays, different body conflicts
+ * - `throttle`: while open, same as once; after closed, a new `event_id` is created
+ * - `debounce`: while idle, replace payload and reschedule; after closed, new `event_id`
+ * - `batch`: while idle, append payloads into `submissions` and reschedule; webhook receives all
+ */
+export type KeyMode = "once" | "throttle" | "debounce" | "batch";
+
+export const KEY_MODES = ["once", "throttle", "debounce", "batch"] as const satisfies readonly KeyMode[];
+
+/** Cap on accumulated payloads for an open `key_mode: "batch"` event. */
+export const MAX_BATCH_SUBMISSIONS = 100;
+
 type DeliverImmediately = {
   deliver_at?: never;
   delay_seconds?: never;
@@ -57,6 +71,8 @@ export type SubmitEventRequest<TEvent extends JsonValue = JsonValue> = {
   event_type: string;
   /** Omitted or JSON `null` is stored as `null`. */
   event?: TEvent;
+  /** Defaults to `once` on the server when omitted. */
+  key_mode?: KeyMode;
 } & DeliveryTiming;
 
 /**
@@ -70,6 +86,8 @@ export interface SendMessageEvent {
 export type SubmitSendMessageRequest = {
   event_type: "send_message";
   event: SendMessageEvent;
+  /** Defaults to `once` on the server when omitted. */
+  key_mode?: KeyMode;
 } & DeliveryTiming;
 
 /**
@@ -121,12 +139,21 @@ export interface GetEventQuery {
   attempts?: "1";
 }
 
+/** One payload accepted while a `key_mode: "batch"` event was idle. */
+export interface BatchSubmission<TEvent extends JsonValue = JsonValue> {
+  event: TEvent;
+  submitted_at: Rfc3339;
+}
+
 /** Tenant-visible event. Worker id, lease token, and internal error detail are omitted. */
 export interface Event {
   event_id: string;
   queue_id: string;
   event_type: string;
   event: JsonValue;
+  key_mode: KeyMode;
+  /** Accumulated payloads for `batch`; `null` for other modes. */
+  submissions: BatchSubmission[] | null;
   server_status: ServerStatus;
   client_status: ClientStatus | null;
   attempt_count: number;
@@ -222,6 +249,11 @@ export interface WebhookDeliveryBody<TEvent extends JsonValue = JsonValue> {
   queue_id: string;
   event_type: string;
   event: TEvent;
+  /**
+   * Present only when the event was submitted with `key_mode: "batch"`.
+   * Latest payload is also mirrored in `event`.
+   */
+  submissions?: BatchSubmission<TEvent>[];
   attempt: number;
   created_at: Rfc3339;
 }

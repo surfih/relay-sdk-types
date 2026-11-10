@@ -1,6 +1,6 @@
 {
   "name": "relay-types",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": true,
   "description": "Header, request, and response types for the Relay /api/v1 HTTP API",
   "type": "module",

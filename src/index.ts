@@ -67,6 +67,8 @@ export type { CreateQueueRequest, CreateQueueResponse, Queue, QueueRules, Webhoo
 
 export {
   CLIENT_STATUSES,
+  KEY_MODES,
+  MAX_BATCH_SUBMISSIONS,
   MAX_CHECKPOINT_BATCH,
   MAX_CHECKPOINTS_PER_EVENT,
   MAX_DELAY_SECONDS,
@@ -75,6 +77,7 @@ export {
 } from "./events.js";
 export type {
   AcceptedEventResponse,
+  BatchSubmission,
   Checkpoint,
   CheckpointInput,
   ClientResultError,
@@ -87,6 +90,7 @@ export type {
   EventWithAttempts,
   GetEventQuery,
   GetEventResponse,
+  KeyMode,
   PostCheckpointsRequest,
   PostCheckpointsResponse,
   PostEventResultRequest,
